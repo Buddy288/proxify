@@ -3,6 +3,7 @@ package controller
 import (
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +11,7 @@ import (
 	"github.com/poixeai/proxify/infra/ctx"
 	"github.com/poixeai/proxify/infra/logger"
 	"github.com/poixeai/proxify/infra/response"
+	"github.com/poixeai/proxify/infra/stream"
 	"github.com/poixeai/proxify/util"
 )
 
@@ -70,12 +72,18 @@ func ProxyHandler(c *gin.Context) {
 	c.Status(resp.StatusCode)
 
 	// determine if response is a stream
-	ct := resp.Header.Get("Content-Type")
-	te := resp.Header.Get("Transfer-Encoding")
-	isStream := strings.Contains(te, "chunked") || strings.Contains(ct, "text/event-stream")
+	if isStreamResponse(resp) {
+		// stream heartbeat
+		if os.Getenv("STREAM_HEARTBEAT_ENABLED") == "true" {
+			stream.Heartbeat(c)
+		}
 
-	if isStream {
-		streamCopy(c, resp)
+		// stream copy with optional smoothing
+		if os.Getenv("STREAM_SMOOTHING_ENABLED") == "true" {
+			stream.Smoothing(c, resp)
+		} else {
+			streamCopy(c, resp)
+		}
 	} else {
 		io.Copy(c.Writer, resp.Body)
 	}
@@ -83,22 +91,57 @@ func ProxyHandler(c *gin.Context) {
 
 // stream support SSE / chunked
 func streamCopy(c *gin.Context, resp *http.Response) {
+	ctx := c.Request.Context()
 	buf := make([]byte, 4096)
 	writer := c.Writer
+
 	for {
-		n, err := resp.Body.Read(buf)
-		if n > 0 {
-			_, writeErr := writer.Write(buf[:n])
-			if writeErr != nil {
-				return // client disconnected
+		select {
+		case <-ctx.Done():
+			logger.Warnf("client disconnected, stop streaming")
+			return
+		default:
+			n, err := resp.Body.Read(buf)
+			if n > 0 {
+				_, writeErr := writer.Write(buf[:n])
+				if writeErr != nil {
+					logger.Warnf("failed to write to client: %v", writeErr)
+					return // client disconnected
+				}
+				writer.Flush() // keep flushing to client
 			}
-			writer.Flush() // keep flushing to client
-		}
-		if err != nil {
-			if err == io.EOF {
+			if err != nil {
+				if err == io.EOF {
+					return
+				}
+				logger.Errorf("stream read error: %v", err)
 				return
 			}
-			return
 		}
 	}
+}
+
+// isStreamResponse checks if the response is a stream based on headers
+func isStreamResponse(resp *http.Response) bool {
+	ct := strings.ToLower(resp.Header.Get("Content-Type"))
+	te := strings.ToLower(resp.Header.Get("Transfer-Encoding"))
+
+	// clearly SSE
+	if strings.Contains(ct, "text/event-stream") {
+		return true
+	}
+
+	// HTTP/1.1 chunked
+	if strings.Contains(te, "chunked") && !strings.Contains(ct, "application/json") {
+		return true
+	}
+
+	// other known stream content types
+	if strings.Contains(ct, "application/octet-stream") ||
+		strings.Contains(ct, "application/x-ndjson") ||
+		strings.Contains(ct, "application/stream+json") {
+		return true
+	}
+
+	return false
 }
