@@ -88,6 +88,7 @@ func applyFlowControl(ctx context.Context, in <-chan chunk) <-chan chunk {
 		defer close(buf)
 		for ck := range in {
 			if DetectDoneSignal(ck.body) {
+				logger.Debug("[FlowControl] Detected done signal from upstream")
 				if doneSeenAt.IsZero() {
 					doneSeenAt = time.Now()
 				}
