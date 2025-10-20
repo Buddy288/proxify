@@ -2,17 +2,15 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/poixeai/proxify/infra/config"
 	"github.com/poixeai/proxify/infra/ctx"
-	"github.com/poixeai/proxify/infra/logger"
-	"github.com/poixeai/proxify/infra/response"
 	"github.com/poixeai/proxify/infra/watcher"
 	"github.com/poixeai/proxify/util"
 )
 
 func Extractor() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		top, sub := util.ExtractRoute(c.Request.URL.Path)
+		path := c.Request.URL.Path
+		top, sub := util.ExtractRoute(path)
 		query := c.Request.URL.RawQuery
 
 		if query != "" {
@@ -27,18 +25,6 @@ func Extractor() gin.HandlerFunc {
 		c.Set(ctx.TopRoute, top)
 		c.Set(ctx.SubPath, sub)
 
-		// home
-		if c.Request.URL.Path == "/" {
-			c.Next()
-			return
-		}
-
-		// system whitelist → allow directly
-		if config.ReservedTopRoutes[top] {
-			c.Next()
-			return
-		}
-
 		// check if route exists in routes.json
 		cfg := watcher.GetRoutes()
 		found := false
@@ -49,13 +35,7 @@ func Extractor() gin.HandlerFunc {
 				break
 			}
 		}
-
-		if !found {
-			logger.Warnf("Route not found: " + top)
-			response.RespondTopRouteNotFoundError(c)
-			c.Abort()
-			return
-		}
+		c.Set(ctx.Proxified, found)
 
 		c.Next()
 	}

@@ -29,6 +29,9 @@ func main() {
 	// setup routes
 	router.SetRoutes(r)
 
+	// setup frontend static files
+	MountFrontend(r)
+
 	// start server
 	port := util.GetEnvPort()
 	if err := r.Run(":" + port); err != nil {

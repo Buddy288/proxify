@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/poixeai/proxify/infra/config"
 	"github.com/poixeai/proxify/infra/ctx"
 	"github.com/poixeai/proxify/infra/logger"
 	"github.com/poixeai/proxify/infra/response"
@@ -16,14 +15,6 @@ import (
 )
 
 func ProxyHandler(c *gin.Context) {
-	// if reserved route, return 404
-	topRoute := c.GetString(ctx.TopRoute)
-	if config.ReservedTopRoutes[topRoute] {
-		logger.Warnf("404 Not Found: %s", topRoute)
-		response.RespondSystemRouteNotFoundError(c)
-		return
-	}
-
 	// build target URL
 	targetEndpoint := c.GetString(ctx.TargetEndpoint)
 	subPath := c.GetString(ctx.SubPath)
