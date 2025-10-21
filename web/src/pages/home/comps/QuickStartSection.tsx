@@ -56,11 +56,18 @@ export default function QuickStartSection() {
                             <div className="mt-4 space-y-2">
                                 <div>
                                     <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{t("home.quick_start.step.two.meta.origin_address")}</span>
-                                    <CodeBlock>https://api.openai.com/v1/chat/completions</CodeBlock>
+                                    <CodeBlock>
+                                        https://
+                                        <span className="text-[#E6406C] font-semibold">api.openai.com</span>
+                                        /v1/chat/completions</CodeBlock>
                                 </div>
                                 <div>
                                     <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{t("home.quick_start.step.two.meta.replace_with")}</span>
-                                    <CodeBlock>http://proxify.poixe.com/openai/v1/chat/completions</CodeBlock>
+                                    <CodeBlock>
+                                        http://proxify.poixe.com
+                                        <span className="text-[#E6406C] font-semibold">/openai</span>
+                                        /v1/chat/completions
+                                    </CodeBlock>
                                 </div>
                             </div>
                         </div>

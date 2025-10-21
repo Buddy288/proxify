@@ -10,3 +10,6 @@ routes.json
 
 # note
 /_note
+
+# go build output
+/bin
