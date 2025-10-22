@@ -12,7 +12,7 @@
       "code_examples": "Code Examples"
     },
     "hero": {
-      "slogan": "An open-source, lightweight reverse proxy for multiple AI model providers’ API endpoints.",
+      "slogan": "An open-source, lightweight, and self-hosted reverse proxy gateway for AI APIs",
       "subtitle": "Proxify supports mainstream model providers such as OpenAI, Anthropic, Gemini, and more.",
       "get_started": "Get Started",
       "view_on_github": "View on GitHub",
